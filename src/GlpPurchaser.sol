@@ -9,7 +9,12 @@ import {IGlpManager} from "gmx/IGlpManager.sol";
 import {IGlp} from "gmx/IGlp.sol";
 import {IGlpPriceUtils} from "src/IGlpPriceUtils.sol";
 
-contract Glp {
+struct GlpPurchase {
+    uint256 usdcAmount;
+    uint256 glpAmount;
+}
+
+contract GlpPurchaser {
     ERC20 private usdcToken;
     IRewardRouter private rewardRouter;
     IVault private vault;
@@ -40,13 +45,18 @@ contract Glp {
 
     event mintAndStakeGlp (address addr, uint256 amount, uint256 usdgAmount, uint256 minGlp);
 
-    function buyGlp(uint256 usdcAmount) public checkAllowance(usdcAmount) {
+    function buyGlp(uint256 usdcAmount) public checkAllowance(usdcAmount)  returns (GlpPurchase memory) {
         uint256 price = glpPriceUtils.glpPrice();
         uint256 glpToPurchase = usdcAmount * price / GLP_DIVISOR;
         
         usdcToken.transferFrom(msg.sender, address(this), usdcAmount);
         
         uint256 glpAmountAfterSlippage = glpToPurchase * (BASIS_POINTS_DIVISOR - DEFAULT_SLIPPAGE) / BASIS_POINTS_DIVISOR;
-        rewardRouter.mintAndStakeGlp(usdcAddress, usdcAmount, 0, glpAmountAfterSlippage);
+        uint256 glpAmount = rewardRouter.mintAndStakeGlp(usdcAddress, usdcAmount, 0, glpAmountAfterSlippage);
+
+        return GlpPurchase({
+            usdcAmount: usdcAmount,
+            glpAmount: glpAmount
+        });
     }
 }
