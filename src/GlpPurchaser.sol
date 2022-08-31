@@ -8,13 +8,9 @@ import {IVault} from "gmx/IVault.sol";
 import {IGlpManager} from "gmx/IGlpManager.sol";
 import {IGlp} from "gmx/IGlp.sol";
 import {IGlpPriceUtils} from "src/IGlpPriceUtils.sol";
+import {IPurchaser, Purchase} from "src/IPurchaser.sol";
 
-struct GlpPurchase {
-    uint256 usdcAmount;
-    uint256 glpAmount;
-}
-
-contract GlpPurchaser {
+contract GlpPurchaser is IPurchaser {
     ERC20 private usdcToken;
     IRewardRouter private rewardRouter;
     IVault private vault;
@@ -28,7 +24,7 @@ contract GlpPurchaser {
     uint256 private constant BASIS_POINTS_DIVISOR = 10000;
     uint256 private constant DEFAULT_SLIPPAGE = 30;
     uint256 private constant PRICE_PRECISION = 10 ** 30;
-    uint256 private constant GLP_DIVISOR = 1*10**18;
+    uint256 private constant USDC_DIVISOR = 1*10**6;
 
     constructor(address _usdcAddress, address _rewardRouterAddress, address _vaultAddress, address _glpPriceUtilsAddress) {
         usdcAddress = _usdcAddress;
@@ -43,20 +39,18 @@ contract GlpPurchaser {
         _;
     }
 
-    event mintAndStakeGlp (address addr, uint256 amount, uint256 usdgAmount, uint256 minGlp);
-
-    function buyGlp(uint256 usdcAmount) public checkAllowance(usdcAmount)  returns (GlpPurchase memory) {
+    function Purchase(uint256 usdcAmount) external checkAllowance(usdcAmount) returns (Purchase memory) {
         uint256 price = glpPriceUtils.glpPrice();
-        uint256 glpToPurchase = usdcAmount * price / GLP_DIVISOR;
+        uint256 glpToPurchase = usdcAmount * price / USDC_DIVISOR;
         
         usdcToken.transferFrom(msg.sender, address(this), usdcAmount);
         
         uint256 glpAmountAfterSlippage = glpToPurchase * (BASIS_POINTS_DIVISOR - DEFAULT_SLIPPAGE) / BASIS_POINTS_DIVISOR;
         uint256 glpAmount = rewardRouter.mintAndStakeGlp(usdcAddress, usdcAmount, 0, glpAmountAfterSlippage);
 
-        return GlpPurchase({
+        return Purchase({
             usdcAmount: usdcAmount,
-            glpAmount: glpAmount
+            tokenAmount: glpAmount
         });
     }
 }

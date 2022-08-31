@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {GlpPurchaser, GlpPurchase} from "../src/GlpPurchaser.sol";
+import {GlpPurchaser} from "../src/GlpPurchaser.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {IGlpManager} from "gmx/IGlpManager.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
@@ -12,7 +12,7 @@ import {IVault} from "gmx/IVault.sol";
 import {MockUsdc} from "test/mocks/MockUsdc.sol";
 import {IGlpPriceUtils} from "src/IGlpPriceUtils.sol";
 import {IRewardRouter} from "gmx/IRewardRouter.sol";
-
+import {Purchase} from "src/IPurchaser.sol";
 
 contract GlpPurchaserTest is Test {
     GlpPurchaser public glpPurchaser;
@@ -25,7 +25,7 @@ contract GlpPurchaserTest is Test {
         vm.mockCall(
             address(0),
             abi.encodeWithSelector(IGlpPriceUtils.glpPrice.selector),
-            abi.encode(1*10**18)
+            abi.encode(1*10**6)
         );
 
        vm.mockCall(
@@ -48,11 +48,10 @@ contract GlpPurchaserTest is Test {
             abi.encodeWithSelector(IRewardRouter.mintAndStakeGlp.selector, address(usdcToken), usdcAmount, 0, minGlpAmount)
         );
 
-
-        GlpPurchase memory purchase = glpPurchaser.buyGlp(usdcAmount);
+        Purchase memory purchase = glpPurchaser.Purchase(usdcAmount);
 
         assertEq(purchase.usdcAmount, usdcAmount);
-        assertEq(purchase.glpAmount, 1996*10**15);
+        assertEq(purchase.tokenAmount, 1996*10**15);
     }
 }
 
