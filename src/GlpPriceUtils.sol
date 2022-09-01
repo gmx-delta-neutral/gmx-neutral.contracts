@@ -10,16 +10,13 @@ contract GlpPriceUtils is IGlpPriceUtils {
   IGlpManager private glpManager;
   IGlp private glp;
   IVault private vault;
-  address private usdcAddress;
-
   uint32 private constant USDC_MULTIPLIER = 1*10**6;
   uint32 private constant PERCENT_DIVISOR = 1000;
 
-  constructor(address _glpManager, address _glp, address _vaultAddress, address _usdcAddress) {
+  constructor(address _glpManager, address _glp, address _vaultAddress) {
     glpManager = IGlpManager(_glpManager);
     glp = IGlp(_glp);
     vault = IVault(_vaultAddress);
-    usdcAddress = _usdcAddress;
   }
 
   function glpPrice() public view returns (uint256) {

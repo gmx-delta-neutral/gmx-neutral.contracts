@@ -19,6 +19,7 @@ contract GlpPurchaser is IPurchaser {
     IGlpPriceUtils private glpPriceUtils;
     address private usdcAddress;
     address private glpAddress;
+    address private glpManagerAddress;
 
     uint256 private constant PERCENT_DIVISOR = 1000;
     uint256 private constant BASIS_POINTS_DIVISOR = 10000;
@@ -26,12 +27,13 @@ contract GlpPurchaser is IPurchaser {
     uint256 private constant PRICE_PRECISION = 10 ** 30;
     uint256 private constant USDC_DIVISOR = 1*10**6;
 
-    constructor(address _usdcAddress, address _rewardRouterAddress, address _vaultAddress, address _glpPriceUtilsAddress) {
+    constructor(address _usdcAddress, address _rewardRouterAddress, address _vaultAddress, address _glpPriceUtilsAddress, address _glpManagerAddress) {
         usdcAddress = _usdcAddress;
         usdcToken = ERC20(_usdcAddress);
         rewardRouter = IRewardRouter(_rewardRouterAddress);
         vault = IVault(_vaultAddress);
         glpPriceUtils = IGlpPriceUtils(_glpPriceUtilsAddress);
+        glpManagerAddress = _glpManagerAddress;
     }
 
     modifier checkAllowance(uint amount) {
@@ -39,13 +41,14 @@ contract GlpPurchaser is IPurchaser {
         _;
     }
 
-    function Purchase(uint256 usdcAmount) external checkAllowance(usdcAmount) returns (Purchase memory) {
+    function Purchase(uint256 usdcAmount) external returns (Purchase memory) {
         uint256 price = glpPriceUtils.glpPrice();
         uint256 glpToPurchase = usdcAmount * price / USDC_DIVISOR;
         
         usdcToken.transferFrom(msg.sender, address(this), usdcAmount);
-        
+
         uint256 glpAmountAfterSlippage = glpToPurchase * (BASIS_POINTS_DIVISOR - DEFAULT_SLIPPAGE) / BASIS_POINTS_DIVISOR;
+        usdcToken.approve(address(glpManagerAddress), usdcAmount);
         uint256 glpAmount = rewardRouter.mintAndStakeGlp(usdcAddress, usdcAmount, 0, glpAmountAfterSlippage);
 
         return Purchase({

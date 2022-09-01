@@ -10,7 +10,6 @@ import {IVault} from "gmx/IVault.sol";
 
 contract GlpPriceUtilsTest is Test {
   GlpPriceUtils private glpPriceUtils;
-  MockUsdc private usdcToken;
   address private mockAddress = address(0);
   uint8 private usdcDecimals = 6;
 
@@ -45,8 +44,7 @@ contract GlpPriceUtilsTest is Test {
             abi.encode(50)
       );
  
-    usdcToken = new MockUsdc("USDC Token", "USDC", usdcDecimals);
-    glpPriceUtils = new GlpPriceUtils(mockAddress, mockAddress, mockAddress, address(usdcToken));
+    glpPriceUtils = new GlpPriceUtils(mockAddress, mockAddress, mockAddress);
   }
 
    function testGetGlpPrice() public {

@@ -34,7 +34,7 @@ contract GlpPurchaserTest is Test {
             abi.encode(1996*10**15)
         );
 
-        glpPurchaser = new GlpPurchaser(address(usdcToken), mockAddress, mockAddress, mockAddress);
+        glpPurchaser = new GlpPurchaser(address(usdcToken), mockAddress, mockAddress, mockAddress, mockAddress);
     }
 
     function testCanBuyGlp() public {
