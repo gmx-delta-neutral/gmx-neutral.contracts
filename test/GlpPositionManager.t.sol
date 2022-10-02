@@ -3,25 +3,32 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import {GlpPositionManager} from "src/GlpPositionManager.sol";
-import {IGlpPriceUtils} from "src/IGlpPriceUtils.sol";
-import {IPurchaser, Purchase} from "src/IPurchaser.sol";
+import {IPriceUtils} from "src/IPriceUtils.sol";
+import {IExchange, Purchase} from "src/IExchange.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 
 contract GlpPositionManagerTest is Test {
   address mockAddress = address(0);
   GlpPositionManager glpPositionManager;
 
   function setUp() public {
-    glpPositionManager = new GlpPositionManager(mockAddress, mockAddress);
+    glpPositionManager = new GlpPositionManager(mockAddress, mockAddress, mockAddress, mockAddress, mockAddress);
 
     vm.mockCall(
         address(0),
-        abi.encodeWithSelector(IGlpPriceUtils.glpPrice.selector),
+        abi.encodeWithSelector(IPriceUtils.glpPrice.selector),
         abi.encode(1*10**6)
     );
 
     vm.mockCall(
         address(0),
-        abi.encodeWithSelector(IPurchaser.Purchase.selector),
+        abi.encodeWithSelector(ERC20.approve.selector),
+        abi.encode(true)
+    );
+
+    vm.mockCall(
+        address(0),
+        abi.encodeWithSelector(IExchange.buy.selector),
         abi.encode(Purchase({
           usdcAmount: 2*10**6,
           tokenAmount: 1996*10**15
@@ -34,10 +41,10 @@ contract GlpPositionManagerTest is Test {
     uint256 expectedGlpAmount = 1996*10**15;
     uint256 expectedPositionWorth = 1996000;
     int256 expectedPnl = -4000;
-    uint256 tokenAmount = glpPositionManager.BuyPosition(usdcAmount);
-    assertEq(glpPositionManager.CostBasis(), usdcAmount);
+    uint256 tokenAmount = glpPositionManager.buy(usdcAmount);
+    assertEq(glpPositionManager.costBasis(), usdcAmount);
     assertEq(tokenAmount, expectedGlpAmount);
-    assertEq(glpPositionManager.PositionWorth(), expectedPositionWorth);
-    assertEq(glpPositionManager.Pnl(), expectedPnl);
+    assertEq(glpPositionManager.positionWorth(), expectedPositionWorth);
+    assertEq(glpPositionManager.pnl(), expectedPnl);
   }
 } 

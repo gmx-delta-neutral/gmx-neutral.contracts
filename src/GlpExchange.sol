@@ -7,16 +7,16 @@ import {IRewardRouter} from "gmx/IRewardRouter.sol";
 import {IVault} from "gmx/IVault.sol";
 import {IGlpManager} from "gmx/IGlpManager.sol";
 import {IGlp} from "gmx/IGlp.sol";
-import {IGlpPriceUtils} from "src/IGlpPriceUtils.sol";
-import {IPurchaser, Purchase} from "src/IPurchaser.sol";
+import {IPriceUtils} from "src/IPriceUtils.sol";
+import {IExchange, Purchase, TradeType} from "src/IExchange.sol";
 
-contract GlpPurchaser is IPurchaser {
+contract GlpExchange is IExchange {
     ERC20 private usdcToken;
     IRewardRouter private rewardRouter;
     IVault private vault;
     IGlpManager private glpManager;
     IGlp private glp;
-    IGlpPriceUtils private glpPriceUtils;
+    IPriceUtils private priceUtils;
     address private usdcAddress;
     address private glpAddress;
     address private glpManagerAddress;
@@ -27,12 +27,12 @@ contract GlpPurchaser is IPurchaser {
     uint256 private constant PRICE_PRECISION = 10 ** 30;
     uint256 private constant USDC_DIVISOR = 1*10**6;
 
-    constructor(address _usdcAddress, address _rewardRouterAddress, address _vaultAddress, address _glpPriceUtilsAddress, address _glpManagerAddress) {
+    constructor(address _usdcAddress, address _rewardRouterAddress, address _vaultAddress, address _priceUtilsAddress, address _glpManagerAddress) {
         usdcAddress = _usdcAddress;
         usdcToken = ERC20(_usdcAddress);
         rewardRouter = IRewardRouter(_rewardRouterAddress);
         vault = IVault(_vaultAddress);
-        glpPriceUtils = IGlpPriceUtils(_glpPriceUtilsAddress);
+        priceUtils = IPriceUtils(_priceUtilsAddress);
         glpManagerAddress = _glpManagerAddress;
     }
 
@@ -41,8 +41,12 @@ contract GlpPurchaser is IPurchaser {
         _;
     }
 
-    function Purchase(uint256 usdcAmount) external returns (Purchase memory) {
-        uint256 price = glpPriceUtils.glpPrice();
+    function tradeType() external pure returns (TradeType) {
+        return TradeType.Buy;
+    }
+
+    function buy(uint256 usdcAmount) external returns (Purchase memory) {
+        uint256 price = priceUtils.glpPrice();
         uint256 glpToPurchase = usdcAmount * price / USDC_DIVISOR;
         
         usdcToken.transferFrom(msg.sender, address(this), usdcAmount);
@@ -55,5 +59,9 @@ contract GlpPurchaser is IPurchaser {
             usdcAmount: usdcAmount,
             tokenAmount: glpAmount
         });
+    }
+
+    function sell(uint256) external returns (Purchase memory) {
+        
     }
 }

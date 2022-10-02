@@ -2,14 +2,14 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import {GlpPriceUtils} from "src/GlpPriceUtils.sol";
+import {PriceUtils} from "src/PriceUtils.sol";
 import {MockUsdc} from "test/mocks/MockUsdc.sol";
 import {IGlp} from "gmx/IGlp.sol";
 import {IGlpManager} from "gmx/IGlpManager.sol";
 import {IVault} from "gmx/IVault.sol";
 
-contract GlpPriceUtilsTest is Test {
-  GlpPriceUtils private glpPriceUtils;
+contract PriceUtilsTest is Test {
+  PriceUtils private priceUtils;
   address private mockAddress = address(0);
   uint8 private usdcDecimals = 6;
 
@@ -44,12 +44,11 @@ contract GlpPriceUtilsTest is Test {
             abi.encode(50)
       );
  
-    glpPriceUtils = new GlpPriceUtils(mockAddress, mockAddress, mockAddress);
+      priceUtils = new PriceUtils(mockAddress, mockAddress, mockAddress, mockAddress);
   }
 
    function testGetGlpPrice() public {
-      uint256 price = glpPriceUtils.glpPrice(); 
-
+      uint256 price = priceUtils.glpPrice(); 
       assertEq(price, 500000);
   }
 }
