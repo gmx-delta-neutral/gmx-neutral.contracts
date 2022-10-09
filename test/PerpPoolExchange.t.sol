@@ -11,7 +11,7 @@ contract PerpPoolPurchaserTest is Test {
   address private mockAddress = address(0);
 
   function setUp() public {
-    perpPoolExchange = new PerpPoolExchange(mockAddress, mockAddress, mockAddress);
+    perpPoolExchange = new PerpPoolExchange(mockAddress, mockAddress, mockAddress, mockAddress);
 
     vm.mockCall(
         address(0),

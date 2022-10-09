@@ -34,6 +34,12 @@ contract GlpPositionManagerTest is Test {
           tokenAmount: 1996*10**15
         }))
     );
+
+    vm.mockCall(
+        address(0),
+        abi.encodeWithSelector(ERC20.transferFrom.selector),
+        abi.encode(true)
+    );
   }
 
   function testCanBuyPosition() public {

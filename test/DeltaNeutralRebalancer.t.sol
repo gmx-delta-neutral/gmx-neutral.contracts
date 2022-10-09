@@ -5,16 +5,23 @@ import {Test} from "forge-std/Test.sol";
 import {DeltaNeutralRebalancer} from "src/DeltaNeutralRebalancer.sol";
 import {IPositionManager} from "src/IPositionManager.sol";
 import {TokenAllocation} from "src/TokenAllocation.sol";
+import {RebalanceAction} from "src/RebalanceAction.sol";
 
-contract DeltaNeutralRebalancerTest is Test {
+contract DeltaNeutralRebalancerTest is Test {    
     DeltaNeutralRebalancer private deltaNeutralRebalancer;    
+    address private glpPositionManagerAddress;
+    address private btcPoolPositionManagerAddress; 
+    address private ethPoolPositionManagerAddress; 
+    address private btcAddress;
+    address private ethAddress;
+
 
     function setUp() public {
-        address glpPositionManagerAddress = address(1); 
-        address btcPoolPositionManagerAddress = address(2); 
-        address ethPoolPositionManagerAddress = address(3); 
-        address btcAddress = address(4);
-        address ethAddress = address(5);
+        glpPositionManagerAddress = address(1); 
+        btcPoolPositionManagerAddress = address(2); 
+        ethPoolPositionManagerAddress = address(3); 
+        btcAddress = address(4);
+        ethAddress = address(5);
         
         vm.mockCall(
             address(1),
@@ -74,14 +81,58 @@ contract DeltaNeutralRebalancerTest is Test {
             }))
         );
 
+        vm.mockCall(
+            glpPositionManagerAddress,
+            abi.encodeWithSelector(IPositionManager.getRebalanceAction.selector),
+            abi.encode(RebalanceAction.Buy)
+        );
+        vm.mockCall(
+            btcPoolPositionManagerAddress,
+            abi.encodeWithSelector(IPositionManager.getRebalanceAction.selector),
+            abi.encode(RebalanceAction.Buy)
+        );
+        vm.mockCall(
+            ethPoolPositionManagerAddress,
+            abi.encodeWithSelector(IPositionManager.getRebalanceAction.selector),
+            abi.encode(RebalanceAction.Buy)
+        );
+
+        vm.mockCall(
+            glpPositionManagerAddress,
+            abi.encodeCall(IPositionManager.rebalance, (895523401)),
+            abi.encode(true)
+        );
+        vm.mockCall(
+            btcPoolPositionManagerAddress,
+            abi.encodeCall(IPositionManager.rebalance, (44776170)),
+            abi.encode(true)
+        );
+        vm.mockCall(
+            ethPoolPositionManagerAddress,
+            abi.encodeCall(IPositionManager.rebalance, (59701558)),
+            abi.encode(true)
+        );
+
         deltaNeutralRebalancer = new DeltaNeutralRebalancer(glpPositionManagerAddress, btcPoolPositionManagerAddress, ethPoolPositionManagerAddress, btcAddress, ethAddress);
     }
 
-    function testGetRebalancedAllocation() public {
-        (uint256 glpToHave, uint256 btcPerpToHave, uint256 ethPerpToHave) = deltaNeutralRebalancer.getRebalancedAllocation();
-        assertEq(glpToHave, 1019115631); 
-        assertEq(btcPerpToHave, 43898206);
-        assertEq(ethPerpToHave, 57405345);
+    function testRebalance() public {
+        vm.expectCall(
+            glpPositionManagerAddress,
+            abi.encodeCall(IPositionManager.rebalance, (895523401))
+        );
+
+        vm.expectCall(
+            btcPoolPositionManagerAddress,
+            abi.encodeCall(IPositionManager.rebalance, (44776170))
+        );
+
+        vm.expectCall(
+            ethPoolPositionManagerAddress,
+            abi.encodeCall(IPositionManager.rebalance, (59701558))
+        );
+
+        deltaNeutralRebalancer.rebalance();
    }
 }
 

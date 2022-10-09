@@ -8,6 +8,7 @@ import {TokenAllocation} from "src/TokenAllocation.sol";
 import {TokenExposure} from "src/TokenExposure.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IPriceUtils} from "src/IPriceUtils.sol";
+import {RebalanceAction} from "src/RebalanceAction.sol";
 
 uint256 constant FACTOR_ONE_MULTIPLIER = 1*10**6;
 uint256 constant FACTOR_TWO_MULTIPLIER = 1*10**12;
@@ -31,6 +32,17 @@ struct RebalanceData {
   uint256 btcPerpMultiplier;
 }
 
+struct RebalanceQueueData {
+  IPositionManager positionManager;
+  uint256 usdcAmountToHave;
+}
+
+struct RebalanceQueue {
+  RebalanceQueueData[] rebalanceQueueData;
+  uint256 buyIndex;
+  uint256 sellIndex;
+}
+
 contract DeltaNeutralRebalancer is Test {
   IPositionManager private glpPositionManager;
   IPositionManager private btcPerpPoolPositionManager;
@@ -52,7 +64,56 @@ contract DeltaNeutralRebalancer is Test {
     ethAddress = _ethAddress; 
   }
 
-  function rebalance() public {
+  function rebalance() external {
+    (uint256 amountOfGlpToHave, uint256 amountOfPerpPoolBtcToHave, uint256 amountOfPerpPoolEthToHave) = this.getRebalancedAllocation();
+    RebalanceQueue memory rebalanceQueue = this.getRebalanceQueue(amountOfGlpToHave, amountOfPerpPoolBtcToHave, amountOfPerpPoolEthToHave);
+    for (uint8 i = 0; i < rebalanceQueue.rebalanceQueueData.length; i++) {
+      rebalanceQueue.rebalanceQueueData[i].positionManager.rebalance(rebalanceQueue.rebalanceQueueData[i].usdcAmountToHave);
+    }
+  }
+
+  function getRebalanceQueue(uint256 amountOfGlpToHave, uint256 amountOfPerpPoolBtcToHave, uint256 amountOfPerpPoolEthToHave) external view returns (RebalanceQueue memory) {
+    RebalanceQueue memory rebalanceQueue = RebalanceQueue({
+      rebalanceQueueData: new RebalanceQueueData[](3),
+      sellIndex: 0,
+      buyIndex: 2
+    });
+
+    RebalanceQueue memory rebalanceQueue1 = this.addPositionManagerToRebalanceQueue(glpPositionManager, amountOfGlpToHave, rebalanceQueue);
+    RebalanceQueue memory rebalanceQueue2 = this.addPositionManagerToRebalanceQueue(btcPerpPoolPositionManager, amountOfPerpPoolBtcToHave, rebalanceQueue1);
+    RebalanceQueue memory rebalanceQueue3 = this.addPositionManagerToRebalanceQueue(ethPerpPoolPositionManager, amountOfPerpPoolEthToHave, rebalanceQueue2);
+    return rebalanceQueue3;
+  }
+
+  function addPositionManagerToRebalanceQueue(IPositionManager positionManager, uint256 amountOfPositionToHave, RebalanceQueue memory rebalanceQueue) external view returns (RebalanceQueue memory) {
+    uint256 usdcAmountToHave = amountOfPositionToHave * positionManager.price() / FACTOR_ONE_MULTIPLIER;
+    RebalanceAction action = positionManager.getRebalanceAction(usdcAmountToHave);
+    if (action == RebalanceAction.Buy) {
+      rebalanceQueue.rebalanceQueueData[rebalanceQueue.buyIndex] = RebalanceQueueData({
+        positionManager: positionManager,
+        usdcAmountToHave: usdcAmountToHave 
+      });
+      if (rebalanceQueue.buyIndex > 0) {
+        rebalanceQueue.buyIndex -= 1;
+      }
+    } else if (action == RebalanceAction.Sell) {
+      rebalanceQueue.rebalanceQueueData[rebalanceQueue.sellIndex] = RebalanceQueueData({
+        positionManager: positionManager,
+        usdcAmountToHave: usdcAmountToHave  
+      });
+      rebalanceQueue.sellIndex += 1;
+    } else {
+      rebalanceQueue.rebalanceQueueData[rebalanceQueue.buyIndex] = RebalanceQueueData({
+        positionManager: positionManager,
+        usdcAmountToHave: usdcAmountToHave 
+      });
+
+      if (rebalanceQueue.buyIndex > 0) {
+        rebalanceQueue.buyIndex -= 1;
+      }
+    }
+
+    return rebalanceQueue;
   }
 
   function getRebalancedAllocation() external returns (uint256, uint256, uint256) {

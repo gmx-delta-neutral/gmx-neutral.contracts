@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {TokenExposure,NetTokenExposure} from "src/TokenExposure.sol";
 import {TokenAllocation} from "src/TokenAllocation.sol";
+import {RebalanceAction} from "src/RebalanceAction.sol";
 
 abstract contract IPositionManager {
   function positionWorth() virtual external view returns (uint256);
@@ -13,6 +14,18 @@ abstract contract IPositionManager {
   function buy(uint256) virtual external returns (uint256);
   function sell(uint256) virtual external returns (uint256);
   function price() virtual external view returns (uint256);
+  function rebalance(uint256 usdcAmountToHave) virtual external returns (bool) {
+    RebalanceAction rebalanceAction = this.getRebalanceAction(usdcAmountToHave);
+    uint256 worth = this.positionWorth();
+    if (rebalanceAction == RebalanceAction.Buy) {
+      this.buy(usdcAmountToHave - worth);
+    } else if (rebalanceAction == RebalanceAction.Sell) {
+      this.sell(worth - usdcAmountToHave);
+    }
+
+    return true;
+  }
+
   function allocationByToken(address tokenAddress) external view returns (TokenAllocation memory) {
     TokenAllocation[] memory tokenAllocations = this.allocation();
     for (uint256 i = 0; i < tokenAllocations.length; i++) {
@@ -24,4 +37,10 @@ abstract contract IPositionManager {
     revert("Token not found");
   }
 
+  function getRebalanceAction(uint256 usdcAmountToHave) external view returns (RebalanceAction) {
+    uint256 worth = this.positionWorth();
+    if (usdcAmountToHave > worth) return RebalanceAction.Buy;
+    if (usdcAmountToHave < worth) return RebalanceAction.Sell;
+    return RebalanceAction.Nothing; 
+  }
 }

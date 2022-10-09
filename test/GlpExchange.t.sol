@@ -19,22 +19,40 @@ contract GlpPurchaserTest is Test {
     MockUsdc public usdcToken;
     uint8 usdcDecimals = 6; 
     address mockAddress = address(0);
+    uint256 expectedGlpMintAmount = 1996*10**15;
 
     function setUp() public {
-        usdcToken = new MockUsdc("USDC Token", "USDC", usdcDecimals);
         vm.mockCall(
-            address(0),
+            mockAddress,
             abi.encodeWithSelector(IPriceUtils.glpPrice.selector),
             abi.encode(1*10**6)
         );
 
        vm.mockCall(
-            address(0),
-            abi.encodeWithSelector(IRewardRouter.mintAndStakeGlp.selector),
-            abi.encode(1996*10**15)
+            mockAddress,
+            abi.encodeWithSelector(ERC20.transferFrom.selector),
+            abi.encode(true)
         );
 
-        glpExchange = new GlpExchange(address(usdcToken), mockAddress, mockAddress, mockAddress, mockAddress);
+       vm.mockCall(
+            mockAddress,
+            abi.encodeWithSelector(ERC20.approve.selector),
+            abi.encode(true)
+        );
+
+       vm.mockCall(
+            mockAddress,
+            abi.encodeWithSelector(ERC20.transfer.selector),
+            abi.encode(true)
+        );
+
+       vm.mockCall(
+            mockAddress,
+            abi.encodeWithSelector(IRewardRouter.mintAndStakeGlp.selector),
+            abi.encode(expectedGlpMintAmount)
+        );
+
+        glpExchange = new GlpExchange(mockAddress, mockAddress, mockAddress, mockAddress, mockAddress, mockAddress);
     }
 
     function testCanBuyGlp() public {
@@ -45,13 +63,13 @@ contract GlpPurchaserTest is Test {
         uint256 minGlpAmount = 1994*10**15;
         vm.expectCall(
             address(mockAddress),
-            abi.encodeWithSelector(IRewardRouter.mintAndStakeGlp.selector, address(usdcToken), usdcAmount, 0, minGlpAmount)
+            abi.encodeCall(IRewardRouter.mintAndStakeGlp, (address(usdcToken), usdcAmount, 0, minGlpAmount))
         );
 
         Purchase memory purchase = glpExchange.buy(usdcAmount);
 
         assertEq(purchase.usdcAmount, usdcAmount);
-        assertEq(purchase.tokenAmount, 1996*10**15);
+        assertEq(purchase.tokenAmount, expectedGlpMintAmount);
     }
 }
 
