@@ -49,19 +49,16 @@ contract DeltaNeutralRebalancer is Test {
   IPositionManager private ethPerpPoolPositionManager;
   address private btcAddress;
   address private ethAddress;
+  ERC20 private usdcToken;
 
   constructor(
-    address _glpPositionManagerAddress,
-    address _btcPoolPositionManagerAddress,
-    address _ethPoolPositionManagerAddress,
     address _btcAddress,
-    address _ethAddress
+    address _ethAddress,
+    address _usdcAddress
   ) {
-    glpPositionManager = IPositionManager(_glpPositionManagerAddress);
-    btcPerpPoolPositionManager = IPositionManager(_btcPoolPositionManagerAddress);
-    ethPerpPoolPositionManager = IPositionManager(_ethPoolPositionManagerAddress);
     btcAddress = _btcAddress;
     ethAddress = _ethAddress; 
+    usdcToken = ERC20(_usdcAddress); 
   }
 
   function rebalance() external {
@@ -179,6 +176,21 @@ contract DeltaNeutralRebalancer is Test {
 
   function calculateAmountOfGlpToHave(RebalanceData memory d, uint256 amountOfPerpBtcToHave) external returns (uint256) {
     return d.Pbtcperp*amountOfPerpBtcToHave*d.btcPerpAllocation.leverage*d.btcPerpAllocation.percentage/(d.Pglp*d.glpBtcAllocation.leverage*d.glpBtcAllocation.percentage);
+  }
+
+  function setGlpPositionManager(address glpPositionManagerAddress) external {
+    glpPositionManager = IPositionManager(glpPositionManagerAddress);
+    usdcToken.approve(address(glpPositionManager), 2**256 - 1);
+  }
+
+  function setBtcPerpPoolManager(address btcPerpPoolPositionManagerAddress) external {
+    btcPerpPoolPositionManager = IPositionManager(btcPerpPoolPositionManagerAddress);
+    usdcToken.approve(address(btcPerpPoolPositionManager), 2**256 - 1);
+  }
+
+  function setEthPerpPoolManager(address ethPerpPoolPositionManagerAddress) external {
+    ethPerpPoolPositionManager = IPositionManager(ethPerpPoolPositionManagerAddress);
+    usdcToken.approve(address(ethPerpPoolPositionManager), 2**256 - 1);
   }
 
   function getTotalLiquidity() private pure returns (uint256) {

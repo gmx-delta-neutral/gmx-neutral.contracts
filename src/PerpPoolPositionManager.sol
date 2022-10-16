@@ -11,6 +11,7 @@ import {IPoolCommitter} from "perp-pool/IPoolCommitter.sol";
 import {PerpPoolUtils} from "src/PerpPoolUtils.sol";
 import {TokenAllocation} from "src/TokenAllocation.sol";
 import {PositionType} from "src/PositionType.sol";
+import {DeltaNeutralRebalancer} from "src/DeltaNeutralRebalancer.sol";
 
 contract PerpPoolPositionManager is IPositionManager {
   IExchange private perpPoolExchange;
@@ -20,12 +21,14 @@ contract PerpPoolPositionManager is IPositionManager {
   IPoolCommitter private poolCommitter;
   ERC20 private usdcToken; 
   PerpPoolUtils private perpPoolUtils;
-  
+  DeltaNeutralRebalancer private deltaNeutralRebalancer;
+
+  uint256 private constant USDC_MULTIPLIER = 1*10**6; 
   uint256 private _costBasis;
   address private trackingTokenAddress;
   uint256 private lastIntervalId;
 
-	constructor(address _perpPoolExchangeAddress,  address _poolTokenAddress, address _priceUtilsAddress, address _leveragedPoolAddress, address _trackingTokenAddress, address _poolCommitterAddress, address _usdcAddress, address _perpPoolUtilsAddress) {
+	constructor(address _perpPoolExchangeAddress,  address _poolTokenAddress, address _priceUtilsAddress, address _leveragedPoolAddress, address _trackingTokenAddress, address _poolCommitterAddress, address _usdcAddress, address _perpPoolUtilsAddress, address _deltaNeutralRebalancerAddress) {
     perpPoolExchange = IExchange(_perpPoolExchangeAddress);
     poolToken = ERC20(_poolTokenAddress);
     priceUtils = PriceUtils(_priceUtilsAddress);
@@ -34,6 +37,7 @@ contract PerpPoolPositionManager is IPositionManager {
     poolCommitter = IPoolCommitter(_poolCommitterAddress);
     usdcToken = ERC20(_usdcAddress);
     perpPoolUtils = PerpPoolUtils(_perpPoolUtilsAddress);
+    deltaNeutralRebalancer = DeltaNeutralRebalancer(_deltaNeutralRebalancerAddress);
   }
 
   function positionWorth() override public view returns (uint256) {
@@ -51,21 +55,19 @@ contract PerpPoolPositionManager is IPositionManager {
   }
 
   function buy(uint256 usdcAmount) override external returns (uint256) {
-    usdcToken.transferFrom(msg.sender, address(this), usdcAmount);
-    usdcToken.approve(address(perpPoolExchange), usdcAmount);
+    bytes32 commitParams = perpPoolUtils.encodeCommitParams(usdcAmount, IPoolCommitter.CommitType.ShortMint, false, true);
+    usdcToken.transferFrom(address(deltaNeutralRebalancer), address(this), usdcAmount);
+    usdcToken.approve(address(leveragedPool), usdcAmount);
+    poolCommitter.commit(commitParams);
 
-    Purchase memory purchase = perpPoolExchange.buy(usdcAmount);
-    _costBasis += purchase.usdcAmount;
-    return purchase.tokenAmount;
+    _costBasis += usdcAmount;
   }
 
   function sell(uint256 usdcAmount) override external returns (uint256) {
-    usdcToken.transferFrom(msg.sender, address(this), usdcAmount);
-    usdcToken.approve(address(perpPoolExchange), usdcAmount);
-
-    Purchase memory purchase = perpPoolExchange.buy(usdcAmount);
-    _costBasis += purchase.usdcAmount;
-    return purchase.tokenAmount;
+    uint256 tokensToSell = usdcAmount * this.price() / USDC_MULTIPLIER;
+    bytes32 commitParams = perpPoolUtils.encodeCommitParams(tokensToSell, IPoolCommitter.CommitType.ShortBurn, false, true);
+    poolCommitter.commit(commitParams);
+    _costBasis -= usdcAmount;
   }
 
   function exposures() override external view returns (TokenExposure[] memory) {

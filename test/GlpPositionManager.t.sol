@@ -6,33 +6,20 @@ import {GlpPositionManager} from "src/GlpPositionManager.sol";
 import {IPriceUtils} from "src/IPriceUtils.sol";
 import {IExchange, Purchase} from "src/IExchange.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {IRewardRouter} from "gmx/IRewardRouter.sol";
 
 contract GlpPositionManagerTest is Test {
   address mockAddress = address(0);
   GlpPositionManager glpPositionManager;
+  uint256 usdcAmount = 2*10**6;
 
   function setUp() public {
-    glpPositionManager = new GlpPositionManager(mockAddress, mockAddress, mockAddress, mockAddress, mockAddress);
+    glpPositionManager = new GlpPositionManager(mockAddress, mockAddress, mockAddress, mockAddress, mockAddress, address(this));
 
     vm.mockCall(
         address(0),
-        abi.encodeWithSelector(IPriceUtils.glpPrice.selector),
+        abi.encodeCall(IPriceUtils.glpPrice, ()),
         abi.encode(1*10**6)
-    );
-
-    vm.mockCall(
-        address(0),
-        abi.encodeWithSelector(ERC20.approve.selector),
-        abi.encode(true)
-    );
-
-    vm.mockCall(
-        address(0),
-        abi.encodeWithSelector(IExchange.buy.selector),
-        abi.encode(Purchase({
-          usdcAmount: 2*10**6,
-          tokenAmount: 1996*10**15
-        }))
     );
 
     vm.mockCall(
@@ -40,10 +27,15 @@ contract GlpPositionManagerTest is Test {
         abi.encodeWithSelector(ERC20.transferFrom.selector),
         abi.encode(true)
     );
+
+    vm.mockCall(
+        address(0),
+        abi.encodeWithSelector(IRewardRouter.mintAndStakeGlp.selector),
+        abi.encode(1996*10**15)
+    );
   }
 
   function testCanBuyPosition() public {
-    uint256 usdcAmount = 2*10**6;
     uint256 expectedGlpAmount = 1996*10**15;
     uint256 expectedPositionWorth = 1996000;
     int256 expectedPnl = -4000;

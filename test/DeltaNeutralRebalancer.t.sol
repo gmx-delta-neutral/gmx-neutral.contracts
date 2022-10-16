@@ -6,6 +6,7 @@ import {DeltaNeutralRebalancer} from "src/DeltaNeutralRebalancer.sol";
 import {IPositionManager} from "src/IPositionManager.sol";
 import {TokenAllocation} from "src/TokenAllocation.sol";
 import {RebalanceAction} from "src/RebalanceAction.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 
 contract DeltaNeutralRebalancerTest is Test {    
     DeltaNeutralRebalancer private deltaNeutralRebalancer;    
@@ -14,6 +15,7 @@ contract DeltaNeutralRebalancerTest is Test {
     address private ethPoolPositionManagerAddress; 
     address private btcAddress;
     address private ethAddress;
+    address private usdcAddress;
 
 
     function setUp() public {
@@ -22,6 +24,7 @@ contract DeltaNeutralRebalancerTest is Test {
         ethPoolPositionManagerAddress = address(3); 
         btcAddress = address(4);
         ethAddress = address(5);
+        usdcAddress = address(6);
         
         vm.mockCall(
             address(1),
@@ -113,7 +116,16 @@ contract DeltaNeutralRebalancerTest is Test {
             abi.encode(true)
         );
 
-        deltaNeutralRebalancer = new DeltaNeutralRebalancer(glpPositionManagerAddress, btcPoolPositionManagerAddress, ethPoolPositionManagerAddress, btcAddress, ethAddress);
+        vm.mockCall(
+            usdcAddress,
+            abi.encodeWithSelector(ERC20.approve.selector),
+            abi.encode(true)
+        );
+
+        deltaNeutralRebalancer = new DeltaNeutralRebalancer(btcAddress, ethAddress, usdcAddress);
+        deltaNeutralRebalancer.setGlpPositionManager(glpPositionManagerAddress);
+        deltaNeutralRebalancer.setBtcPerpPoolManager(btcPoolPositionManagerAddress);
+        deltaNeutralRebalancer.setEthPerpPoolManager(ethPoolPositionManagerAddress);
     }
 
     function testRebalance() public {

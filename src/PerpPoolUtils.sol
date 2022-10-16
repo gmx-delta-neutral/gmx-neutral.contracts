@@ -39,4 +39,22 @@ contract PerpPoolUtils {
     uint256 claimedAmount = balance * priceUtils.perpPoolTokenPrice(leveragedPoolAddress, PositionType.Short);
     return balance * claimedAmount;
   }
+
+  function encodeCommitParams(
+        uint256 amount,
+        IPoolCommitter.CommitType commitType,
+        bool fromAggregateBalance,
+        bool payForClaim
+    ) external pure returns (bytes32) {
+        uint128 shortenedAmount = uint128(amount);
+        bytes32 res;
+
+        assembly {
+            res := add(
+                shortenedAmount,
+                add(shl(128, commitType), add(shl(136, fromAggregateBalance), shl(144, payForClaim)))
+            )
+        }
+        return res;
+    }
 }
