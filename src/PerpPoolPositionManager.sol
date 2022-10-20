@@ -14,7 +14,6 @@ import {PositionType} from "src/PositionType.sol";
 import {DeltaNeutralRebalancer} from "src/DeltaNeutralRebalancer.sol";
 
 contract PerpPoolPositionManager is IPositionManager {
-  IExchange private perpPoolExchange;
   ERC20 private poolToken;
   PriceUtils private priceUtils;
   ILeveragedPool private leveragedPool;
@@ -29,8 +28,7 @@ contract PerpPoolPositionManager is IPositionManager {
   uint256 private lastIntervalId;
   bool private _canRebalance = true;
 
-	constructor(address _perpPoolExchangeAddress,  address _poolTokenAddress, address _priceUtilsAddress, address _leveragedPoolAddress, address _trackingTokenAddress, address _poolCommitterAddress, address _usdcAddress, address _perpPoolUtilsAddress, address _deltaNeutralRebalancerAddress) {
-    perpPoolExchange = IExchange(_perpPoolExchangeAddress);
+	constructor(address _poolTokenAddress, address _priceUtilsAddress, address _leveragedPoolAddress, address _trackingTokenAddress, address _poolCommitterAddress, address _usdcAddress, address _perpPoolUtilsAddress, address _deltaNeutralRebalancerAddress) {
     poolToken = ERC20(_poolTokenAddress);
     priceUtils = PriceUtils(_priceUtilsAddress);
     leveragedPool = ILeveragedPool(_leveragedPoolAddress);
@@ -43,7 +41,7 @@ contract PerpPoolPositionManager is IPositionManager {
 
   function positionWorth() override public view returns (uint256) {
     uint256 claimedUsdcWorth = perpPoolUtils.getClaimedUsdcWorth(address(this), address(leveragedPool));
-    uint256 committedUsdcWorth = perpPoolUtils.getCommittedUsdcWorth(address(perpPoolExchange));
+    uint256 committedUsdcWorth = perpPoolUtils.getCommittedUsdcWorth(address(this));
 
     return claimedUsdcWorth + committedUsdcWorth;
   }
