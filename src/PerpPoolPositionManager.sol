@@ -27,6 +27,7 @@ contract PerpPoolPositionManager is IPositionManager {
   uint256 private _costBasis;
   address private trackingTokenAddress;
   uint256 private lastIntervalId;
+  bool private _canRebalance = true;
 
 	constructor(address _perpPoolExchangeAddress,  address _poolTokenAddress, address _priceUtilsAddress, address _leveragedPoolAddress, address _trackingTokenAddress, address _poolCommitterAddress, address _usdcAddress, address _perpPoolUtilsAddress, address _deltaNeutralRebalancerAddress) {
     perpPoolExchange = IExchange(_perpPoolExchangeAddress);
@@ -89,5 +90,19 @@ contract PerpPoolPositionManager is IPositionManager {
 
   function price() override external view returns (uint256) {
     return priceUtils.perpPoolTokenPrice(address(leveragedPool), PositionType.Short);
+  }
+
+  function claim() external {
+    uint256 amountOfClaimedTokens = poolToken.balanceOf(address(this));
+    poolCommitter.claim(address(this));
+    uint256 amountOfClaimedTokensAfter = poolToken.balanceOf(address(this));
+
+    if (amountOfClaimedTokensAfter > amountOfClaimedTokens && !this.canRebalance()) {
+      _canRebalance = true; 
+    }
+  }
+
+  function canRebalance() override external view returns (bool) {
+    return _canRebalance;
   }
 }

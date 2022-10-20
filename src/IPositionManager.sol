@@ -14,6 +14,7 @@ abstract contract IPositionManager {
   function buy(uint256) virtual external returns (uint256);
   function sell(uint256) virtual external returns (uint256);
   function price() virtual external view returns (uint256);
+  function canRebalance() virtual external view returns (bool);
   function rebalance(uint256 usdcAmountToHave) virtual external returns (bool) {
     RebalanceAction rebalanceAction = this.getRebalanceAction(usdcAmountToHave);
     uint256 worth = this.positionWorth();

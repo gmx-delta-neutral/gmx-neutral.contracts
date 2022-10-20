@@ -7,6 +7,7 @@ import {IPositionManager} from "src/IPositionManager.sol";
 import {TokenAllocation} from "src/TokenAllocation.sol";
 import {RebalanceAction} from "src/RebalanceAction.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 
 contract DeltaNeutralRebalancerTest is Test {    
     DeltaNeutralRebalancer private deltaNeutralRebalancer;    
@@ -120,6 +121,46 @@ contract DeltaNeutralRebalancerTest is Test {
             usdcAddress,
             abi.encodeWithSelector(ERC20.approve.selector),
             abi.encode(true)
+        );
+
+        vm.mockCall(
+            glpPositionManagerAddress,
+            abi.encodeWithSelector(IPositionManager.canRebalance.selector),
+            abi.encode(true)
+        );
+        vm.mockCall(
+            btcPoolPositionManagerAddress,
+            abi.encodeWithSelector(IPositionManager.canRebalance.selector),
+            abi.encode(true)
+        );
+        vm.mockCall(
+            ethPoolPositionManagerAddress,
+            abi.encodeWithSelector(IPositionManager.canRebalance.selector),
+            abi.encode(true)
+        );
+
+        vm.mockCall(
+            glpPositionManagerAddress,
+            abi.encodeWithSelector(IPositionManager.positionWorth.selector),
+            abi.encode(0)
+        );
+
+        vm.mockCall(
+            btcPoolPositionManagerAddress,
+            abi.encodeWithSelector(IPositionManager.positionWorth.selector),
+            abi.encode(0)
+        );
+
+        vm.mockCall(
+            ethPoolPositionManagerAddress,
+            abi.encodeWithSelector(IPositionManager.positionWorth.selector),
+            abi.encode(0)
+        );
+
+        vm.mockCall(
+            usdcAddress,
+            abi.encodeWithSelector(IERC20.balanceOf.selector),
+            abi.encode(1000*10**6)
         );
 
         deltaNeutralRebalancer = new DeltaNeutralRebalancer(btcAddress, ethAddress, usdcAddress);

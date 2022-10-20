@@ -103,6 +103,10 @@ contract GlpPositionManager is IPositionManager, Ownable, Test {
     }
   }
 
+  function canRebalance() override external pure returns (bool) {
+    return true;
+  }
+
   function price() override external view returns (uint256) {
     return priceUtils.glpPrice();
   }

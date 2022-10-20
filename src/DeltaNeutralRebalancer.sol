@@ -65,6 +65,9 @@ contract DeltaNeutralRebalancer is Test {
     (uint256 amountOfGlpToHave, uint256 amountOfPerpPoolBtcToHave, uint256 amountOfPerpPoolEthToHave) = this.getRebalancedAllocation();
     RebalanceQueue memory rebalanceQueue = this.getRebalanceQueue(amountOfGlpToHave, amountOfPerpPoolBtcToHave, amountOfPerpPoolEthToHave);
     for (uint8 i = 0; i < rebalanceQueue.rebalanceQueueData.length; i++) {
+      if (!rebalanceQueue.rebalanceQueueData[i].positionManager.canRebalance()) {
+        revert("Position manager cannot rebalance");
+      }
       rebalanceQueue.rebalanceQueueData[i].positionManager.rebalance(rebalanceQueue.rebalanceQueueData[i].usdcAmountToHave);
     }
   }
@@ -193,15 +196,13 @@ contract DeltaNeutralRebalancer is Test {
     usdcToken.approve(address(ethPerpPoolPositionManager), 2**256 - 1);
   }
 
-  function getTotalLiquidity() private pure returns (uint256) {
-    return 1000 * 10**6;
-    // uint256 availableLiquidity = 0;
-    // availableLiquidity += usdcToken.balanceOf(address(this));
+  function getTotalLiquidity() private view returns (uint256) {
+    uint256 availableLiquidity = 0;
+    availableLiquidity += usdcToken.balanceOf(address(this));
+    availableLiquidity += glpPositionManager.positionWorth();
+    availableLiquidity += btcPerpPoolPositionManager.positionWorth();
+    availableLiquidity += ethPerpPoolPositionManager.positionWorth();
     
-    // for (uint i = 0; i < positionManagers.length; i++) {
-    //   availableLiquidity += positionManagers[i].positionWorth();
-    // }
-
-    // return availableLiquidity;
+    return availableLiquidity;
   }
 }
