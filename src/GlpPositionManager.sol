@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import {IPositionManager} from "src/IPositionManager.sol";
-import {IExchange, Purchase} from "src/IExchange.sol";
 import {IPriceUtils} from "src/IPriceUtils.sol";
 import {TokenExposure} from "src/TokenExposure.sol";
 import {IVaultReader} from "gmx/IVaultReader.sol";
@@ -58,7 +57,7 @@ contract GlpPositionManager is IPositionManager, Ownable, Test {
     return _costBasis;
   }
 
-  function buy(uint256 usdcAmount) onlyRebalancer override external returns (uint256) {
+  function buy(uint256 usdcAmount) override external returns (uint256) {
     uint256 currentPrice = priceUtils.glpPrice();
     uint256 glpToPurchase = usdcAmount * currentPrice / USDC_MULTIPLIER;
     usdcToken.transferFrom(address(deltaNeutralRebalancer), address(this), usdcAmount);
@@ -71,7 +70,7 @@ contract GlpPositionManager is IPositionManager, Ownable, Test {
     return glpAmount;
   }
 
-  function sell(uint256 usdcAmount) onlyRebalancer override external returns (uint256) {
+  function sell(uint256 usdcAmount) override external returns (uint256) {
     uint256 currentPrice = priceUtils.glpPrice();
     uint256 glpToSell = usdcAmount * currentPrice / USDC_MULTIPLIER;
     uint256 usdcAmountAfterSlippage = usdcAmount * (BASIS_POINTS_DIVISOR - DEFAULT_SLIPPAGE) / BASIS_POINTS_DIVISOR;
@@ -101,6 +100,8 @@ contract GlpPositionManager is IPositionManager, Ownable, Test {
         leverage: 1
       });
     }
+
+    return tokenAllocations;
   }
 
   function canRebalance() override external pure returns (bool) {

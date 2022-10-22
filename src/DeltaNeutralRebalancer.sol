@@ -116,8 +116,14 @@ contract DeltaNeutralRebalancer is Test {
     return rebalanceQueue;
   }
 
-  function getRebalancedAllocation() external returns (uint256, uint256, uint256) {
-    uint256 totalLiquidity = getTotalLiquidity();
+  function helloworld() external {
+    TokenAllocation memory glpBtcAllocation = glpPositionManager.allocationByToken(btcAddress);
+    TokenAllocation memory glpEthAllocation = glpPositionManager.allocationByToken(ethAddress);
+    TokenAllocation memory btcPerpAllocation = btcPerpPoolPositionManager.allocationByToken(btcAddress);
+    TokenAllocation memory ethPerpAllocation = ethPerpPoolPositionManager.allocationByToken(ethAddress);
+  }
+  function getRebalancedAllocation() external view returns (uint256, uint256, uint256) {
+    uint256 totalLiquidity = this.getTotalLiquidity();
     // Get allocation information of assets inside positions
     TokenAllocation memory glpBtcAllocation = glpPositionManager.allocationByToken(btcAddress);
     TokenAllocation memory glpEthAllocation = glpPositionManager.allocationByToken(ethAddress);
@@ -147,21 +153,21 @@ contract DeltaNeutralRebalancer is Test {
   function calculateRebalancedPositions(
     RebalanceData memory d
   )
-  external returns (uint256, uint256, uint256) {
+  external view returns (uint256, uint256, uint256) {
     (uint256 glpMultiplier, uint256 btcPerpMultiplier) = this.calculateMultipliers(d);
     d.glpMultiplier = glpMultiplier;
     d.btcPerpMultiplier = btcPerpMultiplier;
     return this.calculatePositionsToHave(d);
   }
 
-  function calculateMultipliers(RebalanceData memory d) external returns (uint256, uint256) {
+  function calculateMultipliers(RebalanceData memory d) external pure returns (uint256, uint256) {
     uint256 glpMultiplier = d.Pbtcperp*d.btcPerpAllocation.leverage*d.btcPerpAllocation.percentage*FACTOR_ONE_MULTIPLIER/(d.Pglp*d.glpBtcAllocation.leverage*d.glpBtcAllocation.percentage);
     uint256 btcPerpMultiplier = FACTOR_TWO_MULTIPLIER * d.Pethperp * d.ethPerpAllocation.leverage * d.ethPerpAllocation.percentage / (d.Pglp * glpMultiplier * d.glpEthAllocation.leverage * d.glpEthAllocation.percentage);
     
     return (glpMultiplier, btcPerpMultiplier);
   }
 
-  function calculatePositionsToHave(RebalanceData memory d) external returns (uint256, uint256, uint256) {
+  function calculatePositionsToHave(RebalanceData memory d) external view returns (uint256, uint256, uint256) {
     uint256 amountOfPerpEthToHave = this.calculateAmountOfEthToHave(d);
     uint256 amountOfPerpBtcToHave = this.calculateAmountOfPerpBtcToHave(d, amountOfPerpEthToHave);
     uint256 amountOfGlpToHave = this.calculateAmountOfGlpToHave(d, amountOfPerpBtcToHave);
@@ -169,15 +175,15 @@ contract DeltaNeutralRebalancer is Test {
     return (amountOfGlpToHave, amountOfPerpBtcToHave, amountOfPerpEthToHave);
   }
 
-  function calculateAmountOfEthToHave(RebalanceData memory d) external returns (uint256) {
+  function calculateAmountOfEthToHave(RebalanceData memory d) external pure returns (uint256) {
     return d.totalLiquidity * FACTOR_THREE_MULTIPLIER / (d.Pglp*d.glpMultiplier*d.btcPerpMultiplier + d.Pbtcperp*d.btcPerpMultiplier*FACTOR_ONE_MULTIPLIER + (d.Pethperp*FACTOR_TWO_MULTIPLIER));
   }
 
-  function calculateAmountOfPerpBtcToHave(RebalanceData memory d, uint256 amountOfPerpEthToHave) external returns (uint256) {
+  function calculateAmountOfPerpBtcToHave(RebalanceData memory d, uint256 amountOfPerpEthToHave) external pure returns (uint256) {
     return FACTOR_ONE_MULTIPLIER * d.Pethperp * amountOfPerpEthToHave * d.ethPerpAllocation.leverage * d.ethPerpAllocation.percentage / (d.Pglp * d.glpMultiplier * d.glpEthAllocation.leverage * d.glpEthAllocation.percentage);
   }
 
-  function calculateAmountOfGlpToHave(RebalanceData memory d, uint256 amountOfPerpBtcToHave) external returns (uint256) {
+  function calculateAmountOfGlpToHave(RebalanceData memory d, uint256 amountOfPerpBtcToHave) external pure returns (uint256) {
     return d.Pbtcperp*amountOfPerpBtcToHave*d.btcPerpAllocation.leverage*d.btcPerpAllocation.percentage/(d.Pglp*d.glpBtcAllocation.leverage*d.glpBtcAllocation.percentage);
   }
 
@@ -196,7 +202,7 @@ contract DeltaNeutralRebalancer is Test {
     usdcToken.approve(address(ethPerpPoolPositionManager), 2**256 - 1);
   }
 
-  function getTotalLiquidity() private view returns (uint256) {
+  function getTotalLiquidity() external view returns (uint256) {
     uint256 availableLiquidity = 0;
     availableLiquidity += usdcToken.balanceOf(address(this));
     availableLiquidity += glpPositionManager.positionWorth();

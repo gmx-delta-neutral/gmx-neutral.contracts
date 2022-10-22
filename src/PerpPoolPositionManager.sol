@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import {IPositionManager} from "src/IPositionManager.sol";
-import {IExchange,Purchase} from "src/IExchange.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {TokenExposure} from "src/TokenExposure.sol";
 import {PriceUtils} from "src/PriceUtils.sol";
@@ -24,7 +23,7 @@ contract PerpPoolPositionManager is IPositionManager {
 
   uint256 private constant USDC_MULTIPLIER = 1*10**6; 
   uint256 private _costBasis;
-  address private trackingTokenAddress;
+  ERC20 private trackingToken;
   uint256 private lastIntervalId;
   bool private _canRebalance = true;
 
@@ -32,7 +31,7 @@ contract PerpPoolPositionManager is IPositionManager {
     poolToken = ERC20(_poolTokenAddress);
     priceUtils = PriceUtils(_priceUtilsAddress);
     leveragedPool = ILeveragedPool(_leveragedPoolAddress);
-    trackingTokenAddress = _trackingTokenAddress;
+    trackingToken = ERC20(_trackingTokenAddress);
     poolCommitter = IPoolCommitter(_poolCommitterAddress);
     usdcToken = ERC20(_usdcAddress);
     perpPoolUtils = PerpPoolUtils(_perpPoolUtilsAddress);
@@ -40,7 +39,7 @@ contract PerpPoolPositionManager is IPositionManager {
   }
 
   function positionWorth() override public view returns (uint256) {
-    uint256 claimedUsdcWorth = perpPoolUtils.getClaimedUsdcWorth(address(this), address(leveragedPool));
+    uint256 claimedUsdcWorth = perpPoolUtils.getClaimedUsdcWorth(address(poolToken), address(this), address(leveragedPool));
     uint256 committedUsdcWorth = perpPoolUtils.getCommittedUsdcWorth(address(this));
 
     return claimedUsdcWorth + committedUsdcWorth;
@@ -49,6 +48,7 @@ contract PerpPoolPositionManager is IPositionManager {
   function costBasis() override public view returns (uint256) {
     return _costBasis; 
   }
+
   function pnl() override external view returns (int256) {
     return int256(positionWorth()) - int256(costBasis());
   }
@@ -73,17 +73,18 @@ contract PerpPoolPositionManager is IPositionManager {
     TokenExposure[] memory tokenExposures = new TokenExposure[](1);
     tokenExposures[0] = TokenExposure({
       amount: -1 * int256(positionWorth()) * 3,
-      token: trackingTokenAddress      
+      token: address(trackingToken)      
     });
   }
 
   function allocation() override external view returns (TokenAllocation[] memory) {
     TokenAllocation[] memory tokenAllocations = new TokenAllocation[](1);
     tokenAllocations[0] = TokenAllocation({
-      tokenAddress: trackingTokenAddress,
+      tokenAddress: address(trackingToken),
       percentage: 100000,
       leverage: 3
     });
+    return tokenAllocations;
   }
 
   function price() override external view returns (uint256) {

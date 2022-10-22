@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import {GlpPositionManager} from "src/GlpPositionManager.sol";
 import {IPriceUtils} from "src/IPriceUtils.sol";
-import {IExchange, Purchase} from "src/IExchange.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {IRewardRouter} from "gmx/IRewardRouter.sol";
 

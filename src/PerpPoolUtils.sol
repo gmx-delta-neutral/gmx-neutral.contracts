@@ -9,11 +9,9 @@ import {PositionType} from "src/PositionType.sol";
 contract PerpPoolUtils {
   IPoolCommitter private poolCommitter;
   PriceUtils private priceUtils;
-  ERC20 private poolToken;
 
-  constructor(address _poolCommitterAddress, address _poolTokenAddress, address _priceUtilsAddress) {
+  constructor(address _poolCommitterAddress, address _priceUtilsAddress) {
     poolCommitter = IPoolCommitter(_poolCommitterAddress);
-    poolToken = ERC20(_poolTokenAddress);
     priceUtils = PriceUtils(_priceUtilsAddress);
   }
 
@@ -34,8 +32,8 @@ contract PerpPoolUtils {
     return totalCommitments;
   }
 
-  function getClaimedUsdcWorth(address poolPositionPurchaserAddress, address leveragedPoolAddress) external view returns (uint256) {
-    uint256 balance = poolToken.balanceOf(poolPositionPurchaserAddress);
+  function getClaimedUsdcWorth(address poolToken, address owner, address leveragedPoolAddress) external view returns (uint256) {
+    uint256 balance = ERC20(poolToken).balanceOf(owner);
     uint256 claimedAmount = balance * priceUtils.perpPoolTokenPrice(leveragedPoolAddress, PositionType.Short);
     return balance * claimedAmount;
   }
